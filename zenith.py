@@ -1,4 +1,14 @@
+"""
+╔══════════════════════════════════════════════════════════╗
+║           ZENITH FOCUS HUB  —  v4.1                     ║
+║     Pomodoro + Quotes + Daily Log + Focus Heatmap        ║
+╚══════════════════════════════════════════════════════════╝
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  QUOTES LIBRARY — adicione novas frases aqui facilmente.
+  Formato: ("frase", "Autor — Obra")
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""
 
 QUOTES = [
     # ── Osamu Dazai — No Longer Human
@@ -55,9 +65,11 @@ QUOTES = [
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 import customtkinter as ctk
 import tkinter as tk
-import os, sys, random, json
+import os, sys, random, json, platform
 from datetime import datetime, date, timedelta
 from collections import defaultdict
+
+IS_WINDOWS = platform.system() == "Windows"
 
 BG_BASE      = "#0a0a0a"
 BG_CARD      = "#0f0f0f"
@@ -149,7 +161,14 @@ class ZenithApp(ctk.CTk):
         W, H = 1100, 600
         sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
         self.geometry(f"{W}x{H}+{(sw-W)//2}+{(sh-H)//2}")
-        self.after(50, self._remove_titlebar)
+
+        if IS_WINDOWS:
+            # Windows: remove borda via API nativa, mantém taskbar
+            self.after(50, self._remove_titlebar)
+        else:
+            # Linux: overrideredirect funciona bem na maioria dos WMs
+            # (GNOME, KDE, XFCE) sem o problema de desaparecer da taskbar
+            self.overrideredirect(True)
 
         self._drag_x = self._drag_y = 0
         self._resize_x = self._resize_y = 0
@@ -171,6 +190,10 @@ class ZenithApp(ctk.CTk):
         self._blink_cursor()
 
     def _remove_titlebar(self):
+        """Windows-only: remove decoração nativa via API do user32.
+        Em Linux isso nunca é chamado (ver __init__)."""
+        if not IS_WINDOWS:
+            return
         try:
             import ctypes
             hwnd = self.winfo_id()
@@ -298,7 +321,7 @@ class ZenithApp(ctk.CTk):
                      anchor="w").grid(row=0, column=0, sticky="ew",
                                      padx=14, pady=(12, 0))
 
-
+        # Linha prefix: cursor + "thought://"
         prefix_row = ctk.CTkFrame(card, fg_color="transparent")
         prefix_row.grid(row=1, column=0, sticky="ew", padx=14, pady=(10, 4))
 
@@ -309,7 +332,7 @@ class ZenithApp(ctk.CTk):
         ctk.CTkLabel(prefix_row, text="thought://",
                      font=(MONO, 10), text_color=GREEN_DIM).pack(side="left")
 
-
+        # Quote — separado, com padding próprio e wraplength generoso
         self._quote_label = ctk.CTkLabel(
             card, text=self._quote,
             font=(MONO, 13), text_color=TEXT_WHITE,
@@ -336,7 +359,7 @@ class ZenithApp(ctk.CTk):
                      font=(MONO, 8), text_color=TEXT_DIM,
                      anchor="e").grid(row=0, column=1, sticky="e")
 
- 
+    # ── Card 3: Daily Log + Heatmap ───────────────────────
     def _build_log_and_heat(self, card):
         self._log_card = card
         card.rowconfigure(0, weight=0)
@@ -347,7 +370,7 @@ class ZenithApp(ctk.CTk):
         card.rowconfigure(5, weight=0)
         card.columnconfigure(0, weight=1)
 
-
+        # Header
         hdr = ctk.CTkFrame(card, fg_color="transparent")
         hdr.grid(row=0, column=0, sticky="ew", padx=12, pady=(10, 4))
         hdr.columnconfigure(0, weight=1)
@@ -358,7 +381,7 @@ class ZenithApp(ctk.CTk):
                                             font=(MONO, 8), text_color=TEXT_DIM, anchor="e")
         self._log_count_lbl.grid(row=0, column=1, sticky="e")
 
-
+        # Input (hidden)
         self._input_frame = ctk.CTkFrame(card, fg_color="#0a140a", corner_radius=4,
                                          border_width=1, border_color=GREEN_DIM)
         ctk.CTkLabel(self._input_frame, text="> task completed:",
@@ -379,7 +402,7 @@ class ZenithApp(ctk.CTk):
                       border_width=1, border_color=GREEN_DIM, corner_radius=3,
                       command=self._save_task).grid(row=0, column=1, sticky="e")
 
-
+        # Log scrollable
         self._log_scroll = ctk.CTkScrollableFrame(card, fg_color="transparent",
                                                    scrollbar_button_color=GREEN_DIM,
                                                    scrollbar_button_hover_color=GREEN_MID)
@@ -437,7 +460,7 @@ class ZenithApp(ctk.CTk):
         self._render_log()
         self.after(200, self._draw_heatmap)
 
-
+    # ── Heatmap — grid estilo GitHub ──────────────────────
     def _draw_heatmap(self, event=None):
         canvas = self._heat_canvas
         month_canvas = self._month_canvas
@@ -454,27 +477,34 @@ class ZenithApp(ctk.CTk):
         if W < 10:
             return
 
-        DAYS   = 30          
-        CELL   = 12          
-        GAP    = 3           
+        DAYS   = 30          # últimos 30 dias
+        CELL   = 12          # tamanho do quadrado
+        GAP    = 3           # espaço entre quadrados
         STEP   = CELL + GAP
-        ROWS   = 7           
-        LEFT   = 24          
- 
+        ROWS   = 7           # linhas = dias da semana (Dom..Sab)
+        LEFT   = 24          # margem para label do dia da semana
+
+        # Colunas necessárias
         today     = date.today()
         today_wd  = today.weekday()          # 0=seg ... 6=dom
-
+        # Converte para Dom=0..Sab=6
         today_wd_sun = (today_wd + 1) % 7
 
-
+        # Slot no grid onde hoje fica: última coluna, linha = today_wd_sun
+        # Calcula o dia que vai na célula [0,0] (coluna 0, linha 0 = domingo)
+        # Total de células = COLS * ROWS; precisamos de pelo menos DAYS slots
+        # Quantas colunas usar?
+        # Para mostrar 30 dias terminando hoje:
+        # slot de hoje = (total_cols - 1) * 7 + today_wd_sun
+        # Vamos calcular total_cols dinamicamente pela largura
         max_cols = max(5, (W - LEFT - 4) // STEP)
-
+        # total slots disponíveis
         total_slots = max_cols * ROWS
-
+        # o slot de hoje é o último usado
         slot_today = total_slots - 1
-
+        # dia na slot 0
         days_before_today = slot_today - today_wd_sun - (max_cols - 1) * ROWS
- 
+        # Simplificado: slot de hoje
         slot_of_today = (max_cols - 1) * ROWS + today_wd_sun
 
         TOP = 2
@@ -494,7 +524,7 @@ class ZenithApp(ctk.CTk):
             x1 = x0 + CELL
             y1 = y0 + CELL
 
-
+            # Borda para hoje
             if d == today:
                 rect_id = canvas.create_rectangle(
                     x0, y0, x1, y1, fill=color, outline=GREEN_MID, width=1)
@@ -512,7 +542,7 @@ class ZenithApp(ctk.CTk):
                                          fill=GREEN_DIM,
                                          font=("Consolas", 7), anchor="w")
 
-
+        # Labels dos dias da semana (Dom, Seg, Qua, Sex)
         day_names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
         for row in [0, 2, 4, 6]:
             y = TOP + row * STEP + CELL // 2
