@@ -1,14 +1,3 @@
-"""
-╔══════════════════════════════════════════════════════════╗
-║           ZENITH FOCUS HUB  —  v4.1                     ║
-║     Pomodoro + Quotes + Daily Log + Focus Heatmap        ║
-╚══════════════════════════════════════════════════════════╝
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  QUOTES LIBRARY — adicione novas frases aqui facilmente.
-  Formato: ("frase", "Autor — Obra")
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
 
 QUOTES = [
     # ── Osamu Dazai — No Longer Human
