@@ -1,0 +1,405 @@
+"""
+Zenith Focus Hub
+Dark minimal floating desktop app — Pomodoro + Quotes + Cinematic Frame
+Stack: customtkinter + Pillow
+"""
+
+import customtkinter as ctk
+from PIL import Image, ImageOps, ImageEnhance, ImageFilter
+import os
+import sys
+import random
+import threading
+
+# ─────────────────────────────────────────────
+# CONFIG
+# ─────────────────────────────────────────────
+BG_BASE     = "#0a0a0a"
+BG_CARD     = "#161616"
+BG_CARD_END = "#1f1a12"   # subtle warm shift when pomodoro ends
+TEXT_PRIMARY   = "#e8e8e8"
+TEXT_DIM       = "#4a4a4a"
+TEXT_ACCENT    = "#c0b090"  # muted gold — the one aesthetic risk
+BORDER_COLOR   = "#222222"
+
+POMODORO_MINUTES = 50
+FONT_FAMILY = "Segoe UI"   # clean system fallback that looks close to Inter on Windows
+
+QUOTES = [
+    "No longer human.",
+    "I am ashamed of my own existence.",
+    "Death is the only absolute freedom.",
+    "The void is not nothing — it is the purest form of everything.",
+    "To live is to suffer; to survive is to find meaning in the suffering.",
+    "What is called human is merely a mask worn by something older.",
+    "I do not fear death. I fear the grey life that precedes it.",
+    "Perhaps existence is not a gift, but a sentence.",
+    "The beautiful and the damned share the same door.",
+    "Silence is not absence. It is the presence of everything unsaid.",
+]
+
+# ─────────────────────────────────────────────
+# HELPERS
+# ─────────────────────────────────────────────
+def resource_path(filename: str) -> str:
+    """Works both in dev and after PyInstaller bundles."""
+    if hasattr(sys, "_MEIPASS"):
+        base = sys._MEIPASS
+    else:
+        base = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base, filename)
+
+
+def load_cinematic_image(size: tuple) -> ctk.CTkImage | None:
+    path = resource_path("frame.jpg")
+    if not os.path.exists(path):
+        return None
+    try:
+        img = Image.open(path).convert("RGB")
+        img = ImageOps.fit(img, size, method=Image.LANCZOS)
+        img = ImageOps.grayscale(img)
+        img = img.convert("RGB")
+        enhancer = ImageEnhance.Brightness(img)
+        img = enhancer.enhance(0.45)
+        enhancer2 = ImageEnhance.Contrast(img)
+        img = enhancer2.enhance(1.35)
+        return ctk.CTkImage(light_image=img, dark_image=img, size=size)
+    except Exception:
+        return None
+
+
+# ─────────────────────────────────────────────
+# APP
+# ─────────────────────────────────────────────
+class ZenithApp(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+
+        ctk.set_appearance_mode("dark")
+        ctk.set_default_color_theme("dark-blue")
+
+        # ── Window chrome ──────────────────────
+        self.overrideredirect(True)          # frameless
+        self.attributes("-topmost", False)
+        self.configure(fg_color=BG_BASE)
+        self.resizable(False, False)
+
+        # Window size & centering
+        W, H = 780, 440
+        sw = self.winfo_screenwidth()
+        sh = self.winfo_screenheight()
+        x = (sw - W) // 2
+        y = (sh - H) // 2
+        self.geometry(f"{W}x{H}+{x}+{y}")
+
+        # Drag state
+        self._drag_x = 0
+        self._drag_y = 0
+
+        # ── State ──────────────────────────────
+        self.pomodoro_seconds = POMODORO_MINUTES * 60
+        self.timer_running    = False
+        self.cycle_count      = 0
+        self.current_quote    = random.choice(QUOTES)
+        self._timer_thread    = None
+        self._stop_timer      = threading.Event()
+
+        # ── Build UI ───────────────────────────
+        self._build_layout(W, H)
+        self._bind_drag()
+
+    # ── Layout ────────────────────────────────
+    def _build_layout(self, W, H):
+        PAD = 12
+        GAP = 8
+
+        # Title bar strip (draggable)
+        bar = ctk.CTkFrame(self, fg_color=BG_BASE, height=32, corner_radius=0)
+        bar.pack(fill="x", padx=0, pady=0)
+        bar.pack_propagate(False)
+
+        ctk.CTkLabel(
+            bar, text="ZENITH",
+            font=(FONT_FAMILY, 10, "bold"),
+            text_color=TEXT_DIM,
+        ).pack(side="left", padx=16, pady=0)
+
+        # Close button
+        close_btn = ctk.CTkButton(
+            bar, text="✕", width=28, height=22,
+            fg_color="transparent", hover_color="#2a1a1a",
+            text_color=TEXT_DIM, font=(FONT_FAMILY, 11),
+            corner_radius=4,
+            command=self.destroy,
+        )
+        close_btn.pack(side="right", padx=8)
+
+        # Pin-to-top toggle
+        self._pinned = False
+        pin_btn = ctk.CTkButton(
+            bar, text="◈", width=28, height=22,
+            fg_color="transparent", hover_color="#1a1a2a",
+            text_color=TEXT_DIM, font=(FONT_FAMILY, 11),
+            corner_radius=4,
+            command=self._toggle_pin,
+        )
+        pin_btn.pack(side="right", padx=2)
+        self._pin_btn = pin_btn
+
+        # ── Main grid container ────────────────
+        grid = ctk.CTkFrame(self, fg_color=BG_BASE)
+        grid.pack(fill="both", expand=True, padx=PAD, pady=(0, PAD))
+
+        # 3 columns: pomodoro | quotes | frame
+        grid.columnconfigure(0, weight=2, minsize=180)
+        grid.columnconfigure(1, weight=3, minsize=240)
+        grid.columnconfigure(2, weight=3, minsize=240)
+        grid.rowconfigure(0, weight=1)
+
+        # ── Card 1: Pomodoro ───────────────────
+        self._pcard = self._make_card(grid, row=0, col=0, padright=GAP)
+        self._build_pomodoro(self._pcard)
+
+        # ── Card 2: Quotes ─────────────────────
+        self._qcard = self._make_card(grid, row=0, col=1, padright=GAP)
+        self._build_quotes(self._qcard)
+
+        # ── Card 3: Cinematic Frame ────────────
+        self._fcard = self._make_card(grid, row=0, col=2, padright=0)
+        self._build_frame(self._fcard)
+
+    def _make_card(self, parent, row, col, padright=8):
+        card = ctk.CTkFrame(
+            parent,
+            fg_color=BG_CARD,
+            corner_radius=10,
+            border_width=1,
+            border_color=BORDER_COLOR,
+        )
+        card.grid(row=row, column=col, sticky="nsew", padright=padright, pady=0)
+        card.grid_propagate(True)
+        return card
+
+    # ── Pomodoro ──────────────────────────────
+    def _build_pomodoro(self, card):
+        card.rowconfigure(0, weight=1)
+        card.rowconfigure(1, weight=0)
+        card.rowconfigure(2, weight=0)
+        card.rowconfigure(3, weight=1)
+        card.columnconfigure(0, weight=1)
+
+        # Spacer top
+        ctk.CTkLabel(card, text="", fg_color="transparent").grid(row=0, column=0)
+
+        # Minutes display — huge, only minutes
+        self._time_label = ctk.CTkLabel(
+            card,
+            text=f"{POMODORO_MINUTES}",
+            font=(FONT_FAMILY, 72, "bold"),
+            text_color=TEXT_PRIMARY,
+            fg_color="transparent",
+        )
+        self._time_label.grid(row=1, column=0, pady=(0, 2))
+
+        # "min" sub-label
+        ctk.CTkLabel(
+            card, text="min",
+            font=(FONT_FAMILY, 11),
+            text_color=TEXT_DIM,
+        ).grid(row=2, column=0, pady=(0, 16))
+
+        # Controls
+        ctrl = ctk.CTkFrame(card, fg_color="transparent")
+        ctrl.grid(row=3, column=0, sticky="sew", padx=18, pady=14)
+        ctrl.columnconfigure((0, 1), weight=1)
+
+        self._start_btn = ctk.CTkButton(
+            ctrl, text="START",
+            font=(FONT_FAMILY, 10, "bold"),
+            fg_color="#1e1e1e", hover_color="#2a2a2a",
+            text_color=TEXT_ACCENT,
+            border_width=1, border_color="#333",
+            corner_radius=6, height=28,
+            command=self._toggle_timer,
+        )
+        self._start_btn.grid(row=0, column=0, padx=(0, 4), sticky="ew")
+
+        ctk.CTkButton(
+            ctrl, text="↺",
+            font=(FONT_FAMILY, 14),
+            fg_color="#1e1e1e", hover_color="#2a2a2a",
+            text_color=TEXT_DIM,
+            border_width=1, border_color="#333",
+            corner_radius=6, height=28, width=30,
+            command=self._reset_timer,
+        ).grid(row=0, column=1, padx=(4, 0), sticky="ew")
+
+    # ── Quotes ────────────────────────────────
+    def _build_quotes(self, card):
+        card.rowconfigure(0, weight=0)
+        card.rowconfigure(1, weight=1)
+        card.rowconfigure(2, weight=0)
+        card.columnconfigure(0, weight=1)
+
+        # Terminal-style header
+        hdr = ctk.CTkFrame(card, fg_color="transparent")
+        hdr.grid(row=0, column=0, sticky="ew", padx=16, pady=(14, 0))
+
+        ctk.CTkLabel(
+            hdr, text="▸ thought://null",
+            font=("Consolas", 9),
+            text_color=TEXT_DIM,
+        ).pack(side="left")
+
+        # Quote body
+        self._quote_label = ctk.CTkLabel(
+            card,
+            text=self.current_quote,
+            font=(FONT_FAMILY, 14),
+            text_color=TEXT_PRIMARY,
+            wraplength=210,
+            justify="left",
+            fg_color="transparent",
+            anchor="w",
+        )
+        self._quote_label.grid(row=1, column=0, padx=20, pady=8, sticky="nsew")
+
+        # Cycle indicator
+        self._cycle_label = ctk.CTkLabel(
+            card,
+            text="cycle  0",
+            font=("Consolas", 9),
+            text_color=TEXT_DIM,
+            anchor="e",
+        )
+        self._cycle_label.grid(row=2, column=0, sticky="e", padx=16, pady=(0, 12))
+
+    # ── Cinematic Frame ───────────────────────
+    def _build_frame(self, card):
+        card.rowconfigure(0, weight=0)
+        card.rowconfigure(1, weight=1)
+        card.rowconfigure(2, weight=0)
+        card.columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(
+            card, text="▸ frame://noir",
+            font=("Consolas", 9),
+            text_color=TEXT_DIM,
+            anchor="w",
+        ).grid(row=0, column=0, sticky="ew", padx=16, pady=(14, 4))
+
+        # Image area
+        img_frame = ctk.CTkFrame(card, fg_color="#0f0f0f", corner_radius=6)
+        img_frame.grid(row=1, column=0, sticky="nsew", padx=14, pady=4)
+        img_frame.pack_propagate(False)
+
+        # We defer image loading until the window is rendered so we know real size
+        self._img_container = img_frame
+        self.after(80, self._load_frame_image)
+
+        ctk.CTkLabel(
+            card, text="frame.jpg",
+            font=("Consolas", 8),
+            text_color=TEXT_DIM,
+            anchor="e",
+        ).grid(row=2, column=0, sticky="e", padx=16, pady=(2, 10))
+
+    def _load_frame_image(self):
+        w = self._img_container.winfo_width()
+        h = self._img_container.winfo_height()
+        if w < 10 or h < 10:
+            self.after(120, self._load_frame_image)
+            return
+
+        ctk_img = load_cinematic_image((w, h))
+        if ctk_img:
+            lbl = ctk.CTkLabel(self._img_container, image=ctk_img, text="")
+            lbl.pack(fill="both", expand=True)
+        else:
+            # Placeholder if no frame.jpg
+            placeholder = ctk.CTkLabel(
+                self._img_container,
+                text="place  frame.jpg\nnext to  zenith.exe",
+                font=("Consolas", 9),
+                text_color=TEXT_DIM,
+                justify="center",
+            )
+            placeholder.place(relx=0.5, rely=0.5, anchor="center")
+
+    # ── Timer logic ───────────────────────────
+    def _toggle_timer(self):
+        if self.timer_running:
+            self._stop_timer.set()
+            self.timer_running = False
+            self._start_btn.configure(text="START")
+        else:
+            self._stop_timer.clear()
+            self.timer_running = True
+            self._start_btn.configure(text="PAUSE")
+            self._timer_thread = threading.Thread(target=self._run_timer, daemon=True)
+            self._timer_thread.start()
+
+    def _run_timer(self):
+        while self.pomodoro_seconds > 0 and not self._stop_timer.is_set():
+            self._stop_timer.wait(60)   # update every minute — no second anxiety
+            if not self._stop_timer.is_set():
+                self.pomodoro_seconds = max(0, self.pomodoro_seconds - 60)
+                self.after(0, self._update_display)
+
+        if not self._stop_timer.is_set() and self.pomodoro_seconds == 0:
+            self.after(0, self._on_pomodoro_end)
+
+    def _update_display(self):
+        minutes = self.pomodoro_seconds // 60
+        self._time_label.configure(text=str(minutes))
+
+    def _on_pomodoro_end(self):
+        self.timer_running = False
+        self._start_btn.configure(text="START")
+        self.pomodoro_seconds = 0
+        self._time_label.configure(text="0", text_color=TEXT_ACCENT)
+
+        # Subtle card color shift
+        self._pcard.configure(fg_color=BG_CARD_END)
+
+        # Advance quote
+        self.cycle_count += 1
+        self.current_quote = random.choice(QUOTES)
+        self._quote_label.configure(text=self.current_quote)
+        self._cycle_label.configure(text=f"cycle  {self.cycle_count}")
+
+    def _reset_timer(self):
+        self._stop_timer.set()
+        self.timer_running = False
+        self.pomodoro_seconds = POMODORO_MINUTES * 60
+        self._start_btn.configure(text="START")
+        self._time_label.configure(text=str(POMODORO_MINUTES), text_color=TEXT_PRIMARY)
+        self._pcard.configure(fg_color=BG_CARD)   # restore card color
+
+    # ── Drag to move ──────────────────────────
+    def _bind_drag(self):
+        self.bind("<ButtonPress-1>",   self._on_drag_start)
+        self.bind("<B1-Motion>",       self._on_drag_motion)
+
+    def _on_drag_start(self, event):
+        self._drag_x = event.x_root - self.winfo_x()
+        self._drag_y = event.y_root - self.winfo_y()
+
+    def _on_drag_motion(self, event):
+        x = event.x_root - self._drag_x
+        y = event.y_root - self._drag_y
+        self.geometry(f"+{x}+{y}")
+
+    def _toggle_pin(self):
+        self._pinned = not self._pinned
+        self.attributes("-topmost", self._pinned)
+        color = TEXT_ACCENT if self._pinned else TEXT_DIM
+        self._pin_btn.configure(text_color=color)
+
+
+# ─────────────────────────────────────────────
+# ENTRY POINT
+# ─────────────────────────────────────────────
+if __name__ == "__main__":
+    app = ZenithApp()
+    app.mainloop()
