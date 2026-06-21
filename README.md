@@ -13,11 +13,12 @@ Ajuda você a manter o foco com timer Pomodoro, registra suas sessões e transfo
 ## Screenshots
 
 <div align="center">
+<img src="docs/Captura%20de%20tela%202026-06-21%20050654.png" width="49%" style="border-radius: 8px;" />
+<img src="docs/Captura%20de%20tela%202026-06-21%20050905.png" width="49%" style="border-radius: 8px;" />
+</div>
 
-<img src="docs/Captura%20de%20tela%202026-06-21%20050654.png" width="32%" style="border-radius: 8px;" />
-<img src="docs/Captura%20de%20tela%202026-06-21%20050905.png" width="32%" style="border-radius: 8px;" />
-<img src="docs/Captura%20de%20tela%202026-06-21%20050944.png" width="32%" style="border-radius: 8px;" />
-
+<div align="center">
+<img src="docs/Captura%20de%20tela%202026-06-21%20050944.png" width="70%" style="border-radius: 8px;" />
 </div>
 
 ---
