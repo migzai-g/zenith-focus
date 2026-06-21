@@ -1,8 +1,28 @@
 
 __pycache__/
+*.py[cod]
+*$py.class
+*.spec
+.Python
+venv/
+env/
+ENV/
+
+
 build/
 dist/
-*.spec
 
+zenith_log.json
+zenith_settings.json
+*.exe
 *_setup.exe
+*.msi
+
+
 *.iss.bak
+
+
+.vscode/
+.idea/
+*.swp
+*.swo   
