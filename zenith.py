@@ -4,38 +4,45 @@ import os, sys, random, json, platform
 from datetime import datetime, date, timedelta
 
 QUOTES = [
-    ("I have always shook with fright before human beings.", "Dazai — No Longer Human"),
-    ("Mine has been a life of much shame.", "Dazai — No Longer Human"),
-    ("I am convinced that human life is filled with many pure, happy moments.", "Dazai — No Longer Human"),
-    ("The weak fear happiness itself.", "Dazai — No Longer Human"),
-    ("I felt as though even I had the right to be happy.", "Dazai — No Longer Human"),
-    ("I am a dreamer. I know so little of real life.", "Dostoevsky — White Nights"),
-    ("To love is to suffer and there can be no love otherwise.", "Dostoevsky — White Nights"),
-    ("Was it a dream? How is it that one single hour can hold so much?", "Dostoevsky — White Nights"),
-    ("No man knows till he has suffered from the night how sweet the morning can be.", "Stoker — Dracula"),
-    ("We are in Transylvania, and Transylvania is not England.", "Stoker — Dracula"),
-    ("I find no peace, and all my war is done.", "Petrarca — Canzoniere"),
-    ("Alas, I know not what to do or say — my mind grows cold.", "Petrarca — Canzoniere"),
-    ("In this world, is the destiny of mankind controlled by some transcendental entity?", "Miura — Berserk"),
-    ("A dream... it was a long dream.", "Miura — Berserk"),
-    ("Regret is the domain of those who have taken a wrong turn in life.", "Miura — Berserk"),
-    ("Even if we painstakingly piece together something lost, it still won't be the original.", "Miura — Berserk"),
-    ("I have always fought. Fighting was proof that I was alive.", "Miura — Berserk"),
-    ("You have no enemies. No one has the right to hurt another.", "Yukimura — Vinland Saga"),
-    ("A true warrior needs no sword.", "Yukimura — Vinland Saga"),
-    ("There is no land more beautiful than the next one.", "Yukimura — Vinland Saga"),
-    ("I mustn't run away. I mustn't run away.", "Evangelion — Shinji Ikari"),
-    ("Nobody can justify their own existence through logic alone.", "Evangelion — Misato Katsuragi"),
-    ("Humans cannot create anything from nothing. We are not God.", "Evangelion — Ritsuko Akagi"),
-    ("The fate of destruction is also the joy of rebirth.", "Evangelion — SEELE"),
-    ("Don't run. Face what you fear.", "Evangelion — Rei Ayanami"),
-    ("Who are you? I'm me!", "Perfect Blue — Mima Kirigoe"),
-    ("Reality is just a nuance.", "Perfect Blue — Rumi Hidaka"),
-    ("I'm not the real thing anymore.", "Perfect Blue — Mima Kirigoe"),
-    ("Have you seen the Yellow Sign?", "Chambers — The King in Yellow"),
-    ("The tatters of the King must hide, there must the pallid mask reside.", "Chambers — The King in Yellow"),
-    ("Sleep well, for your last sleep approaches.", "Chambers — The King in Yellow"),
-    ("Along the shore the cloud waves break, the twin suns sink behind the lake.", "Chambers — The King in Yellow"),
+    ("Man fears the darkness, and so he scrapes away at the edges of it with fire.", "Rei Ayanami — Neon Genesis Evangelion"),
+    ("Anywhere can be paradise as long as you have the will to live.", "Yui Ikari — Neon Genesis Evangelion"),
+    ("I mustn't run away.", "Shinji Ikari — Neon Genesis Evangelion"),
+    ("The fate of destruction is also the joy of rebirth.", "SEELE — Neon Genesis Evangelion"),
+    ("Humans cannot create anything from nothing. We are not God.", "Ritsuko Akagi — Neon Genesis Evangelion"),
+    ("Pain reminds you the joy you felt was real.", "K — Blade Runner 2049"),
+    ("I've seen things you people wouldn't believe. All those moments will be lost in time, like tears in rain.", "Roy Batty — Blade Runner"),
+    ("Quite an experience to live in fear, isn't it? That's what it is to be a slave.", "Roy Batty — Blade Runner"),
+    ("To live is to suffer. To survive is to find meaning in the suffering.", "Guts — Berserk"),
+    ("In this world, is the destiny of mankind controlled by some transcendental entity? Or is it all just a random series of events?", "Griffith — Berserk"),
+    ("A dream... It was a long dream.", "Guts — Berserk"),
+    ("Regret is the domain of those who have taken a wrong turn in life.", "Guts — Berserk"),
+    ("Even if we painstakingly piece together something lost, it still won't be the original.", "Griffith — Berserk"),
+    ("I have always fought. Fighting was proof that I was alive.", "Guts — Berserk"),
+    ("Reality is just a nuance.", "Rumi Hidaka — Perfect Blue"),
+    ("Who are you? I'm me!", "Mima Kirigoe — Perfect Blue"),
+    ("I'm not the real thing anymore.", "Mima Kirigoe — Perfect Blue"),
+    ("Everything has a beginning and an end. Life is just a cycle of starts and stops.", "Jet Black — Cowboy Bebop"),
+    ("I'm not going there to die. I'm going there to find out if I'm really alive.", "Spike Spiegel — Cowboy Bebop"),
+    ("Angels banished from heaven have no choice but to become devils.", "Vicious — Cowboy Bebop"),
+    ("Fear is freedom! Subjugation is liberation! Contradiction is truth!", "Satsuki Kiryuin — Kill la Kill"),
+    ("The world isn't perfect. But it's there for us, doing the best it can... that's what makes it so damn beautiful.", "Roy Mustang — Fullmetal Alchemist"),
+    ("All problems stem from the human mind. Our consciousness is just the tip of the iceberg.", "Ghost in the Shell"),
+    ("To know sorrow is not terrifying. What is terrifying is to know you can't go back to the happiness you could have.", "Toshiro Hitsugaya — Bleach"),
+    ("If you don’t like your destiny, don’t accept it. Choose your own path.", "Sora — No Game No Life"),
+    ("The scariest and most painful thing is to be hated by someone you truly love.", "Sasuke Uchiha — Naruto"),
+    ("We are all just stories in the end.", "The Doctor — Doctor Who"),
+    ("What is better: to be born good or to overcome your evil nature through great effort?", "Paarthurnax — Skyrim (cinematic feel)"),
+    ("The only thing we have to fear is fear itself... but also the void staring back.", "Inspired — Nietzsche / Evangelion"),
+    ("There is no light without darkness. No joy without suffering.", "Homura Akemi — Puella Magi Madoka Magica"),
+    ("In the end, all that remains is the echo of what we once were.", "Makishima Shogo — Psycho-Pass"),
+    ("The more you try to hold on to something, the more it slips away.", "Miyazaki — Various Works"),
+    ("I am the bone of my sword.", "Shirou Emiya — Fate/Stay Night"),
+    ("People die when they are forgotten.", "Armin Arlert — Attack on Titan"),
+    ("The world is cruel. But it's also very beautiful.", "Eren Yeager — Attack on Titan"),
+    ("You are not special. You are not unique. You are not needed.", "Various — Texhnolyze"),
+    ("We are the hollow men. We are the stuffed men.", "Inspired — T.S. Eliot / Perfect Blue"),
+    ("Despair is the price we pay for hope.", "Kyoko Sakura — Madoka Magica"),
+    ("The only winning move is not to play.", "Joshua — WarGames (cinema classic)"),
 ]
 
 THEMES = {
@@ -69,6 +76,11 @@ def heat_color(theme, count):
     if count == 2: return theme["LVL2"]
     if count <= 4: return theme["LVL3"]
     return theme["LVL4"]
+
+
+def resource_path(filename):
+    base = getattr(sys, "_MEIPASS", None) or os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base, filename)
 
 
 def log_path():
@@ -138,6 +150,8 @@ class ZenithApp(ctk.CTk):
         self.resizable(True, True)
         self.minsize(820, 480)
 
+        self.after(250, self._apply_window_icon)
+
         W, H = 1100, 600
         sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
         self._last_w, self._last_h = W, H
@@ -193,6 +207,17 @@ class ZenithApp(ctk.CTk):
     def _on_anchor_unmap(self, event):
         self.withdraw()
 
+    def _apply_window_icon(self):
+        try:
+            if IS_WINDOWS:
+                self.iconbitmap(resource_path("icon.ico"))
+                if hasattr(self, "_anchor"):
+                    self._anchor.iconbitmap(resource_path("icon.ico"))
+            else:
+                self.iconphoto(True, tk.PhotoImage(file=resource_path("icon.png")))
+        except Exception:
+            pass
+
     def _on_close(self):
         if IS_WINDOWS:
             try: self._anchor.destroy()
@@ -205,7 +230,8 @@ class ZenithApp(ctk.CTk):
         self._bar.pack(fill="x")
         self._bar.pack_propagate(False)
 
-        ctk.CTkLabel(self._bar, text="zenith://focus  v4.3", font=(MONO, 9), text_color=t["MAIN_DIM"]).pack(side="left", padx=14)
+        self._title_lbl = ctk.CTkLabel(self._bar, text="zenith://focus  v4.3", font=(MONO, 9), text_color=t["MAIN_DIM"])
+        self._title_lbl.pack(side="left", padx=14)
         self._bar_cycle = ctk.CTkLabel(self._bar, text="[cycles: 00]", font=(MONO, 8), text_color=t["TEXT_DIM"])
         self._bar_cycle.pack(side="left", padx=6)
 
@@ -503,6 +529,17 @@ class ZenithApp(ctk.CTk):
         self.attributes("-topmost", self._pinned)
         self._pin_btn.configure(text_color=self.theme["MAIN"] if self._pinned else self.theme["TEXT_DIM"])
 
+    def _play_complete_sound(self):
+        try:
+            if IS_WINDOWS:
+                import winsound
+                winsound.MessageBeep(winsound.MB_ICONASTERISK)
+            else:
+                self.bell()
+        except Exception:
+            try: self.bell()
+            except Exception: pass
+
     def _start_timer(self):
         if not self.timer_running:
             self.timer_running = True
@@ -539,6 +576,7 @@ class ZenithApp(ctk.CTk):
                 self._pcard_ref.configure(fg_color=self.theme["BG_CARD_END"])
                 self._start_btn.configure(text_color=self.theme["TEXT_DIM"])
                 self._pause_btn.configure(text_color=self.theme["TEXT_DIM"])
+                self._play_complete_sound()
                 
                 try:
                     self.attributes("-topmost", True)
@@ -628,6 +666,7 @@ class ZenithApp(ctk.CTk):
     def _apply_theme(self):
         t = self.theme
         self.configure(fg_color=t["BG_BASE"])
+        self._title_lbl.configure(text_color=t["MAIN_DIM"])
         self._theme_btn.configure(text=t["label"], text_color=t["MAIN_DIM"])
         self._close_btn.configure(text_color=t["MAIN_DIM"])
         self._minimize_btn.configure(text_color=t["MAIN_DIM"])
@@ -647,7 +686,8 @@ class ZenithApp(ctk.CTk):
         self._time_menu.configure(fg_color=t["BG_ENTRY"], button_color=t["BORDER"], text_color=t["MAIN"],
                                   font=(MONO, 9), dropdown_font=(MONO, 9))
         
-        self._log_scroll.configure(fg_color=t["BG_CARD"], scrollbar_button_color=t["MAIN_DIM"], scrollbar_fg_color=t["BG_CARD"])
+        self._log_scroll.configure(fg_color=t["BG_CARD"], scrollbar_button_color=t["MAIN_DIM"],
+                                   scrollbar_button_hover_color=t["MAIN_MID"], scrollbar_fg_color=t["BG_CARD"])
         self._heat_canvas.configure(bg=t["BG_CARD"])
         self._month_canvas.configure(bg=t["BG_CARD"])
         self._draw_heatmap()
