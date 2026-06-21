@@ -29,7 +29,7 @@ Ajuda você a manter o foco com timer Pomodoro, registra suas sessões e transfo
 - Som de conclusão ao final de cada ciclo
 - Log de sessões — anote o que você fez ao terminar o ciclo
 - **Heatmap de hábito** (estilo GitHub) mostrando os últimos ~6 meses
-- Aba de Pensamentos com frases de Dazai, Dostoiévski, Berserk, Vinland Saga, Evangelion, Perfect Blue e mais
+- Aba de Pensamentos com frases aleatórias
 - **6 temas** de cores: `green`, `amber`, `blood`, `cyan`, `violet` e `mono`
 - Janela sem borda, arrastável, redimensionável e com opção de **sempre no topo** (pin)
 - Totalmente offline e salva os dados localmente
