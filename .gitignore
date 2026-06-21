@@ -1,28 +1,51 @@
-
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-*.spec
+*.pyc
+*.pyo
 .Python
 venv/
 env/
 ENV/
+.env
 
-
+# PyInstaller
+*.spec
 build/
 dist/
+*.manifest
+*.spec.bak
 
+# Arquivos gerados pelo programa (locais)
 zenith_log.json
 zenith_settings.json
+zenith_log_*.json
+
+# Build / Instaladores
 *.exe
 *_setup.exe
 *.msi
+zenith_v*_setup.exe
 
-
+# Inno Setup
 *.iss.bak
+*.iss~
 
-
+# IDE / Editor
 .vscode/
 .idea/
 *.swp
-*.swo   
+*.swo
+*.sublime-*
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Outros temporários
+*.log
+*.tmp
+temp/
+tmp/
